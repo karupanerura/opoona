@@ -42,7 +42,7 @@ class TestGetRepositoryInfo(unittest.TestCase):
         self.assertEqual(repository.owner, 'FOO')
         self.assertEqual(repository.name, 'BAR')
 
-    def test_get_repository_info_for_enterprize(self):
+    def test_get_repository_info_for_enterprise(self):
         url     = 'git@github.example.com:BAR/BUZ.git'
         command = 'git config remote.origin.url {0}'.format(url)
         subprocess.call(command, shell=True)
