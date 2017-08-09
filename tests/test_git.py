@@ -11,7 +11,7 @@ from six       import StringIO
 
 from opoona import git
 
-class TestGetOwnerRepository(unittest.TestCase):
+class TestGetRepositoryInfo(unittest.TestCase):
     def setUp(self):
         self.data_dir = os.path.join(os.path.dirname(__file__), 'data')
         self.tempdir  = tempfile.TemporaryDirectory()
@@ -32,14 +32,45 @@ class TestGetOwnerRepository(unittest.TestCase):
         os.chdir(self.old_cwd)
         self.tempdir.cleanup()
 
-    def test_get_owner_repository(self):
+    def test_get_repository_info_for_basic_style(self):
         url     = 'git@github.com:FOO/BAR.git'
         command = 'git config remote.origin.url {0}'.format(url)
         subprocess.call(command, shell=True)
 
-        owner, repository = git.get_owner_repository()
-        self.assertEqual(owner, 'FOO')
-        self.assertEqual(repository, 'BAR')
+        repository = git.get_repository_info()
+        self.assertEqual(repository.host, 'github.com')
+        self.assertEqual(repository.owner, 'FOO')
+        self.assertEqual(repository.name, 'BAR')
+
+    def test_get_repository_info_for_enterprize(self):
+        url     = 'git@github.example.com:BAR/BUZ.git'
+        command = 'git config remote.origin.url {0}'.format(url)
+        subprocess.call(command, shell=True)
+
+        repository = git.get_repository_info()
+        self.assertEqual(repository.host, 'github.example.com')
+        self.assertEqual(repository.owner, 'BAR')
+        self.assertEqual(repository.name, 'BUZ')
+
+    def test_get_repository_info_for_ssh_with_port(self):
+        url     = 'ssh://example-user@github.example.com:8080/FOO/BUZ.git'
+        command = 'git config remote.origin.url {0}'.format(url)
+        subprocess.call(command, shell=True)
+
+        repository = git.get_repository_info()
+        self.assertEqual(repository.host, 'github.example.com')
+        self.assertEqual(repository.owner, 'FOO')
+        self.assertEqual(repository.name, 'BUZ')
+
+    def test_get_repository_info_for_https(self):
+        url     = 'https://example-user@github.example.com/FOO/BUZ.git'
+        command = 'git config remote.origin.url {0}'.format(url)
+        subprocess.call(command, shell=True)
+
+        repository = git.get_repository_info()
+        self.assertEqual(repository.host, 'github.example.com')
+        self.assertEqual(repository.owner, 'FOO')
+        self.assertEqual(repository.name, 'BUZ')
 
     def test_is_inside_work_tree_yes(self):
         self.assertTrue(git.is_inside_work_tree())

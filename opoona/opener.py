@@ -1,11 +1,16 @@
 # -*- coding: utf-8 -*-
 
+import sys
 import six
 import github3
 
 from . import git
 from .tickets.github import make as make_github_ticket
 
+if sys.version_info.major <= 2:
+    from urlparse import urlparse
+else:
+    from urllib.parse import urlparse
 
 class InvalidConfigException(Exception):
     pass
@@ -18,6 +23,7 @@ class InvalidStatusException(Exception):
 class Opener():
     def __init__(self, config):
         self.config     = config
+        self.base_url   = self._parse_base_url()
         self.repository = self._get_repository()
 
     def open(self, issue):
@@ -33,6 +39,11 @@ class Opener():
         pull = self._create_pull_request(base, ticket)
         print('done! {0}'.format(pull.html_url))
 
+    def _parse_base_url(self):
+        if 'base_url' in self.config['github']:
+            return urlparse(self.config['github']['base_url'])
+        return None
+
     def _get_repository(self):
         token = self.config['github']['token']
         if not token:
@@ -40,9 +51,14 @@ class Opener():
                 'github token is required',
                 'check your config file',
             ]))
-        owner, repository = git.get_owner_repository()
-        github = github3.login(token = token)
-        return github.repository(owner, repository)
+        repository = git.get_repository_info()
+
+        github = None
+        if self.base_url is not None and self.base_url.hostname == repository.host:
+            github = github3.enterprise_login(url = self.base_url.geturl(), token = token)
+        else:
+            github = github3.login(token = token)
+        return github.repository(repository.owner, repository.name)
 
     def _make_ticket(self, issue):
         ticket = make_github_ticket(self.config, self.repository, issue)

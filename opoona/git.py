@@ -2,8 +2,11 @@
 
 import re
 import subprocess
+from collections import namedtuple
 
 import six
+
+RepositoryInfo = namedtuple('RepositoryInfo', ['host', 'owner', 'name'])
 
 def _execute(command):
     proc = subprocess.Popen(
@@ -15,12 +18,16 @@ def _execute(command):
     output, _ =  proc.communicate()
     return output.strip().decode('utf-8')
 
-def get_owner_repository():
-    url   = _execute('git config remote.origin.url')
-    match = re.match(r'git@github.com:([-_a-zA-Z0-9]+)/([-_a-zA-Z0-9]+).git', url)
+def get_repository_info():
+    url = _execute('git config remote.origin.url')
+
+    match = re.match(r'^[^@]+@([^:]+):([-_a-zA-Z0-9]+)/([-_a-zA-Z0-9]+)\.git$', url)
+    if match is None:
+        match = re.match(r'^(?:ssh|https?)://[^@]+@([^:]+)(?::[0-9]+)?/([-_a-zA-Z0-9]+)/([-_a-zA-Z0-9]+)\.git$', url)
+
     if match:
-        return match.group(1), match.group(2)
-    return None, None
+        return RepositoryInfo(host=match.group(1), owner=match.group(2), name=match.group(3))
+    return None
 
 def is_inside_work_tree():
     if _execute('git rev-parse --is-inside-work-tree') == 'true':
