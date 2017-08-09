@@ -53,11 +53,10 @@ class Opener():
             ]))
         repository = git.get_repository_info()
 
-        github = None
+        github = github3.GitHub()
         if self.base_url is not None and self.base_url.hostname == repository.host:
-            github = github3.enterprise_login(url = self.base_url.geturl(), token = token)
-        else:
-            github = github3.login(token = token)
+            github = github3.GitHubEnterprise(self.base_url.geturl())
+        github.login(token = token)
         return github.repository(repository.owner, repository.name)
 
     def _make_ticket(self, issue):
